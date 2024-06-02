@@ -80,6 +80,10 @@ def filterIntermediatePatches = { List<Version> versions ->
   versions.groupBy {"${it.major}.${it.minor}"}.values().collect {it.max()}
 }
 
+tasks.withType(JavaCompile) {
+  options.encoding = "UTF-8"
+}
+
 tasks.register("updateCIBwcVersions") {
   def writeVersions = { File file, List<Version> versions ->
     file.text = ""
@@ -232,6 +236,46 @@ subprojects { proj ->
 }
 
 allprojects {
+
+  repositories {
+    def ALIYUN_REPOSITORY_URL = 'https://maven.aliyun.com/repository/public'
+    def ALIYUN_JCENTER_URL = 'https://maven.aliyun.com/repository/public'
+    def ALIYUN_GOOGLE_URL = 'https://maven.aliyun.com/repository/google'
+    def ALIYUN_GRADLE_PLUGIN_URL = 'https://maven.aliyun.com/repository/gradle-plugin'
+    all { ArtifactRepository repo ->
+      if(repo instanceof MavenArtifactRepository){
+        def url = repo.url.toString()
+        if (url.startsWith('https://repo1.maven.org/maven2/')) {
+          project.logger.lifecycle "Repository ${repo.url} replaced by $ALIYUN_REPOSITORY_URL."
+          remove repo
+        }
+        if (url.startsWith('https://jcenter.bintray.com/')) {
+          project.logger.lifecycle "Repository ${repo.url} replaced by $ALIYUN_JCENTER_URL."
+          remove repo
+        }
+        if (url.startsWith('https://dl.google.com/dl/android/maven2/')) {
+          project.logger.lifecycle "Repository ${repo.url} replaced by $ALIYUN_GOOGLE_URL."
+          remove repo
+        }
+        if (url.startsWith('https://plugins.gradle.org/m2/')) {
+          project.logger.lifecycle "Repository ${repo.url} replaced by $ALIYUN_GRADLE_PLUGIN_URL."
+          remove repo
+        }
+      }
+    }
+    maven { url ALIYUN_REPOSITORY_URL }
+    maven { url ALIYUN_JCENTER_URL }
+    maven { url ALIYUN_GOOGLE_URL }
+    maven { url ALIYUN_GRADLE_PLUGIN_URL }
+  }
+//  repositories {
+//    // mirror
+//    maven { url 'https://maven.aliyun.com/repository/google' }
+//    maven { url 'https://maven.aliyun.com/repository/public/' }
+//    // mavenCentral()
+//    // google()
+//  }
+
   // We disable this plugin for now till we shaked out the issues we see
   // e.g. see https://github.com/elastic/elasticsearch/issues/72169
   // apply plugin:'elasticsearch.internal-test-rerun'
