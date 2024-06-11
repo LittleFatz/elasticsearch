@@ -18,16 +18,16 @@ testClusters.register("runTask") {
     if (providers.systemProperty('run.distribution').getOrElse('default') == 'default') {
       String licenseType = providers.systemProperty("run.license_type").getOrElse("basic")
       if (licenseType == 'trial') {
-        setting 'xpack.ml.enabled', 'true'
-        setting 'xpack.graph.enabled', 'true'
-        setting 'xpack.watcher.enabled', 'true'
+        setting 'xpack.ml.enabled', 'false'
+        setting 'xpack.graph.enabled', 'false'
+        setting 'xpack.watcher.enabled', 'false'
         setting 'xpack.license.self_generated.type', 'trial'
       } else if (licenseType != 'basic') {
         throw new IllegalArgumentException("Unsupported self-generated license type: [" + licenseType + "[basic] or [trial].")
       }
       // Not enabled by default in the build, otherwise all integration tests will download the databases from our geoip download service:
       systemProperty 'ingest.geoip.downloader.enabled.default', 'true'
-      setting 'xpack.security.enabled', 'true'
+      setting 'xpack.security.enabled', 'false'
       keystore 'bootstrap.password', 'password'
       user username: 'elastic-admin', password: 'elastic-password', role: '_es_test_root'
       numberOfNodes = 1
