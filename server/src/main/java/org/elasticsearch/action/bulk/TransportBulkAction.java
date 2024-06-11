@@ -319,6 +319,10 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
         }
 
         // Step 3: create all the indices that are missing, if there are any missing. start the bulk after all the creates come back.
+        /**
+         * 这里使用的线程池为http_server_worker
+         *
+         */
         if (autoCreateIndices.isEmpty()) {
             executeBulk(task, bulkRequest, startTime, listener, executorName, responses, indicesThatCannotBeCreated);
         } else {
@@ -327,6 +331,7 @@ public class TransportBulkAction extends HandledTransportAction<BulkRequest, Bul
                 createIndex(index, bulkRequest.timeout(), new ActionListener<>() {
                     @Override
                     public void onResponse(CreateIndexResponse result) {
+                        //counter==0，代表需要等到全部创建后才执行executeBulk
                         if (counter.decrementAndGet() == 0) {
                             threadPool.executor(executorName).execute(new ActionRunnable<>(listener) {
                                 @Override
