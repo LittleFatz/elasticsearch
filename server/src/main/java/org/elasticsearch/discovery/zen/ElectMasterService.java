@@ -111,6 +111,7 @@ public class ElectMasterService {
         return count;
     }
 
+    //检查是否有足够的候选者，如果没有，直接失败
     public boolean hasEnoughCandidates(Collection<MasterCandidate> candidates) {
         if (candidates.isEmpty()) {
             return false;
@@ -126,6 +127,10 @@ public class ElectMasterService {
     /**
      * Elects a new master out of the possible nodes, returning it. Returns {@code null}
      * if no master has been elected.
+     *
+     * 比较条件：
+     * 1. 集群状态版本号高的排在前面
+     * 2. 如果条件1相同，则选择节点id比较小的作为master
      */
     public MasterCandidate electMaster(Collection<MasterCandidate> candidates) {
         assert hasEnoughCandidates(candidates);

@@ -53,8 +53,13 @@ public class ThreadPool implements ReportingService<ThreadPoolInfo>, Scheduler {
 
     private static final Logger logger = LogManager.getLogger(ThreadPool.class);
 
+    /**
+     * 看上去是定义所有线程池的地方
+     */
     public static class Names {
         public static final String SAME = "same";
+
+        //用于集群发现
         public static final String GENERIC = "generic";
         @Deprecated
         public static final String LISTENER = "listener";

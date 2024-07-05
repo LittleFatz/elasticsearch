@@ -227,6 +227,8 @@ public class UnicastZenPing implements ZenPing {
                 sendPings(requestDuration, pingingRound);
             }
         };
+
+        //集群发现阶段，最多尝试三次发送请求
         threadPool.generic().execute(pingSender);
         threadPool.schedule(pingSender, TimeValue.timeValueMillis(scheduleDuration.millis() / 3), ThreadPool.Names.GENERIC);
         threadPool.schedule(pingSender, TimeValue.timeValueMillis(scheduleDuration.millis() / 3 * 2), ThreadPool.Names.GENERIC);
@@ -361,6 +363,7 @@ public class UnicastZenPing implements ZenPing {
         final ClusterState lastState = contextProvider.clusterState();
         final UnicastPingRequest pingRequest = new UnicastPingRequest(pingingRound.id(), timeout, createPingResponse(lastState));
 
+        //这里的临时节点，来自于手动配置的种子节点 discovery.seed_hosts
         List<TransportAddress> temporalAddresses = temporalResponses.stream().map(pingResponse -> {
             assert clusterName.equals(pingResponse.clusterName())
                 : "got a ping request from a different cluster. expected " + clusterName + " got " + pingResponse.clusterName();
@@ -469,6 +472,8 @@ public class UnicastZenPing implements ZenPing {
                 return ThreadPool.Names.SAME;
             }
 
+
+            //使用这个方法来处理之前发送的集群发现request
             @Override
             public void handleResponse(UnicastPingResponse response) {
                 logger.trace("[{}] received response from {}: {}", pingingRound.id(), node, Arrays.toString(response.pingResponses));
