@@ -354,6 +354,7 @@ public class ElasticsearchCluster implements TestClusterConfiguration, Named {
         }
     }
 
+    //使用./gradlew run --debug-jvm的时候，会通过这个方法生成elasticsearch.yml的配置
     private void commonNodeConfig(ElasticsearchNode node, String nodeNames, ElasticsearchNode firstNode) {
         if (node.getVersion().onOrAfter("7.0.0")) {
             node.defaultConfig.keySet()
@@ -365,7 +366,7 @@ public class ElasticsearchCluster implements TestClusterConfiguration, Named {
                 node.defaultConfig.put("cluster.initial_master_nodes", "[" + nodeNames + "]");
             }
             node.defaultConfig.put("discovery.seed_providers", "file");
-            node.defaultConfig.put("discovery.seed_hosts", "[]");
+            node.defaultConfig.put("discovery.seed_hosts", "[127.0.0.1:9300]");
         } else {
             node.defaultConfig.put("discovery.zen.master_election.wait_for_joins_timeout", "5s");
             if (nodes.size() > 1) {
