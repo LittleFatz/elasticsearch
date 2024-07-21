@@ -416,6 +416,7 @@ public class UnicastZenPing implements ZenPing {
                 }
 
                 logger.trace("[{}] sending to {}", pingingRound.id(), node);
+                //transportService.sendRequest 发送请求给其他node
                 transportService.sendRequest(
                     connection,
                     ACTION_NAME,
@@ -456,6 +457,7 @@ public class UnicastZenPing implements ZenPing {
     }
 
     // for testing
+    //处理pingRequest的对应response
     protected TransportResponseHandler<UnicastPingResponse> getPingResponseHandler(
         final PingingRound pingingRound,
         final DiscoveryNode node

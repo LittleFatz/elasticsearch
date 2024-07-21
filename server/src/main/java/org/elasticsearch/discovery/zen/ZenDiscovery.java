@@ -148,7 +148,12 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
     private final DiscoverySettings discoverySettings;
     private final NoMasterBlockService noMasterBlockService;
     protected final ZenPing zenPing; // protected to allow tests access
+
+    //在非master节点启动，定期探测master节点是否活跃，默认一秒发送一次请求，失败打到一定次数（默认3次）就开始处理离线时间
     private final MasterFaultDetection masterFD;
+
+    //在master节点会启动，定期探测加入集群的节点是否活跃，默认一秒发送一次请求，失败打到一定次数（默认3次）就开始处理离线时间
+    //如果当前集群总节点数没有过半，则放弃master身份，重新加入集群
     private final NodesFaultDetection nodesFD;
     private final PublishClusterStateAction publishClusterState;
     private final MembershipAction membership;
@@ -915,8 +920,10 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
         }
     }
 
+    //查找当前集群活跃的master，
     private DiscoveryNode findMaster() {
         logger.trace("starting to ping");
+        //fullPingResponses包含全部来自其他node的response，里面会包含master信息
         List<ZenPing.PingResponse> fullPingResponses = pingAndWait(pingTimeout).toList();
         if (fullPingResponses == null) {
             logger.trace("No full ping responses");
@@ -961,6 +968,7 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
             }
         }
 
+        //如果当前集群没有active master的话，则从masterCandidates中选出新的master
         if (activeMasters.isEmpty()) {
             if (electMaster.hasEnoughCandidates(masterCandidates)) {
                 final ElectMasterService.MasterCandidate winner = electMaster.electMaster(masterCandidates);
@@ -1014,7 +1022,7 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
         ClusterState clusterState = committedState.get();
 
         logger.warn("{}, current nodes: {}", reason, clusterState.nodes());
-        nodesFD.stop();
+        nodesFD.stop();//master身份的node才会有nodesFD，因此rejoin的时候，需要停掉nodesFD
         masterFD.stop(reason);
 
         // TODO: do we want to force a new thread if we actively removed the master? this is to give a full pinging cycle
@@ -1271,6 +1279,7 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
      */
     private class JoinThreadControl {
 
+        //使用final是为了保证在多线程环境中，这几个变量一旦被初始化后，就不会被修改，只能够通过atomic的相关方法操作
         private final AtomicBoolean running = new AtomicBoolean(false);
         private final AtomicReference<Thread> currentJoinThread = new AtomicReference<>();
 
@@ -1294,6 +1303,7 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
 
         /** starts a new joining thread if there is no currently active one and join thread controlling is started */
         public void startNewThreadIfNotRunning() {
+            //判断该线程是否持有锁stateMutex
             assert Thread.holdsLock(stateMutex);
             if (joinThreadActive()) {
                 return;
@@ -1380,6 +1390,8 @@ public class ZenDiscovery extends AbstractLifecycleComponent implements Discover
             List<Task> tasks,
             ClusterState remainingNodesClusterState
         ) {
+            //因为es中，只有master角色的node，才能参与选举，因此这里使用hasEnoughMasterNodes来判断是否有过半数的master节点连接自己这个master
+            //如果数量不足，则放弃自己的master身份，加入到集群中
             if (electMasterService.hasEnoughMasterNodes(remainingNodesClusterState.nodes()) == false) {
                 final ClusterTasksResult.Builder<Task> resultBuilder = ClusterTasksResult.<Task>builder().successes(tasks);
                 final int masterNodes = electMasterService.countMasterNodes(remainingNodesClusterState.nodes());

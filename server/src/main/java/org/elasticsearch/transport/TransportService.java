@@ -937,6 +937,7 @@ public class TransportService extends AbstractLifecycleComponent
         sendRequest(connection, action, request, options, handler);
     }
 
+    //最终会被封装为AsyncSender#sendRequest
     private <T extends TransportResponse> void sendRequestInternal(
         final Transport.Connection connection,
         final String action,
